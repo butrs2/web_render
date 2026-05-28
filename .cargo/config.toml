@@ -1,0 +1,8 @@
+# 针对 Linux 系统更换为 mold
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+rustflags = ["-C", "link-arg=-fuse-ld=mold"]
+
+# 针对 Windows 系统更换为 lld
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
