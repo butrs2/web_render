@@ -1,10 +1,9 @@
-# 使用官方最新版的 cargo-chef 镜像（与 rust:latest 保持同步）
-FROM lukemathwalker/cargo-chef:latest AS chef
+# 修改这里：指定使用 bookworm 版本的 cargo-chef，确保与运行阶段的 GLIBC 版本严格一致
+FROM lukemathwalker/cargo-chef:latest-rust-bookworm AS chef
 WORKDIR /app
 
 RUN apt update && apt install mold clang -y
-#  2: 提炼依赖 Planner
-
+# 阶段 2: 提炼依赖 Planner
 FROM chef AS planner
 COPY . .
 # 剥离源码，只提取 Cargo.toml 和 Cargo.lock 生成 recipe.json
@@ -25,7 +24,7 @@ ENV SQLX_OFFLINE=true
 # 真正编译你的项目。因为依赖项已经全部缓存，这一步只需要几秒钟
 RUN cargo build --release
 
-# 丢弃所有编译器、源码和缓存，换成轻量级的 Debian 瘦身版
+# 使用完全一致的 debian:bookworm-slim 瘦身版作为运行环境
 FROM debian:bookworm-slim AS runtime
 WORKDIR /app
 
