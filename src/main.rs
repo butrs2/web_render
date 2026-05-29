@@ -8,11 +8,12 @@ use myzero2prod::telemetry::{get_subscriber, init_subscriber};
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
+    dotenvy::dotenv().ok();
     let subscriber = get_subscriber("zero2prod", "info", io::stdout);
     init_subscriber(subscriber);
     let configuration = get_configuration().expect("Failed to read config");
+    let address = format!("{}:{}", configuration.application.host, configuration.application.port);
 
-    let address = format!("0.0.0.0:{}", configuration.application_port);
     let connection_pool = PgPool::connect(&configuration.database.connection_string().expose_secret())
         .await
         .expect("Failed to connect to Postgres.");
