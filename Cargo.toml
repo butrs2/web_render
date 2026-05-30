@@ -20,6 +20,16 @@ tracing-actix-web = "0.7.21"
 dotenvy = "0.15.7"
 serde-aux = "4.7.0"
 unicode-segmentation = "1.13.2"
+fake = "5.1.0"
+validator = "0.20.0"
+reqwest = { version = "0.13.3", default-features = false, features = ["json", "rustls", "form"] }
 
 [dev-dependencies]
-reqwest = "0.13.3"
+tokio = { version = "1.52.3", features = ["rt", "macros"] }
+claim = "0.5.0"
+quickcheck_macros = "1.2.0"
+quickcheck = "1.1.0"
+wiremock = "0.6.5"
+serde_json = "1.0.150"
+serde_urlencoded = "0.7.1"
+

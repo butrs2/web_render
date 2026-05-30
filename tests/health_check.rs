@@ -1,4 +1,3 @@
-use secrecy::ExposeSecret;
 use std::net::TcpListener;
 use std::sync::Once;
 
@@ -28,6 +27,7 @@ async fn health_check_works() {
 }
 
 use myzero2prod::configuration::{DatabaseSettings, get_configuration};
+use myzero2prod::email_client::EmailClient;
 use myzero2prod::startup::run;
 use myzero2prod::telemetry::{get_subscriber, init_subscriber};
 use sqlx::{Connection, Executor, PgConnection, PgPool};
@@ -154,6 +154,7 @@ pub struct TestApp {
 async fn spawn_app() -> TestApp {
     static TRACING: Once = Once::new();
     TRACING.call_once(|| {
+        dotenvy::dotenv().ok();
         let default_filter_level = "info";
         let subscriber_name = "test";
         //      我们不能根据“TEST_LOG”的值将“get_subscriber”的输出赋值给变量
@@ -172,8 +173,15 @@ async fn spawn_app() -> TestApp {
     configuration.database.database_name = Uuid::new_v4().to_string();
     let port = listener.local_addr().unwrap().port();
     let connection_pool = configure_database(&configuration.database).await;
-
-    let server = run(listener, connection_pool.clone()).expect("Failed to bind address");
+    let email_client = EmailClient::new(
+        configuration.email_client.base_url.clone(),
+        configuration.email_client.sender().unwrap(),
+        configuration.email_client.api_user,
+        configuration.email_client.authorization_token,
+        std::time::Duration::from_millis(configuration.email_client.timeout_milliseconds),
+    );
+    let server =
+        run(listener, connection_pool.clone(), email_client).expect("Failed to bind address");
     let _ = tokio::spawn(server);
     TestApp {
         port,

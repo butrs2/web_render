@@ -9,3 +9,10 @@ database:
 application:
   port: 80
   host: 0.0.0.0
+
+email_client:
+  base_url: "https://api.sendcloud.net/apiv2"   # SendCloud V2 接口根路径
+  sender_email: "noreply@wged39.sendcloud.org"  # 用你的测试域名拼成一个发件邮箱
+  api_user: "sc_wged39_test_Vs3obQ"
+  authorization_token: "30be78e4e377f3d8b4a8748393af7b3d" # 充当原本的 token 字段
+  timeout_milliseconds: 10000

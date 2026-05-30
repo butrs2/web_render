@@ -5,6 +5,7 @@ use serde_aux::prelude::deserialize_number_from_string;
 pub struct Settings {
     pub database: DatabaseSettings,
     pub application: ApplicationSettings,
+    pub email_client: EmailClientSettings,
 }
 
 #[derive(serde::Deserialize)]
@@ -25,6 +26,26 @@ pub struct ApplicationSettings {
     pub host: String,
 }
 
+#[derive(serde::Deserialize, Clone)]
+pub struct EmailClientSettings {
+    pub base_url: String,
+    pub sender_email: String,
+    pub api_user: String, // <-- 新增这一行
+    pub authorization_token: secrecy::SecretString,
+    pub timeout_milliseconds: u64,
+}
+
+impl EmailClientSettings {
+    pub fn sender(&self) -> Result<SubscriberEmail, String> {
+        SubscriberEmail::parse(self.sender_email.clone())
+    }
+
+    pub fn timeout(&self) -> std::time::Duration {
+        std::time::Duration::from_millis(self.timeout_milliseconds)
+    }
+}
+
+use crate::domain::SubscriberEmail;
 use sqlx::postgres::{PgConnectOptions, PgSslMode};
 
 impl DatabaseSettings {
@@ -40,6 +61,7 @@ impl DatabaseSettings {
             .password(&self.password.expose_secret())
             .port(self.port)
             .ssl_mode(ssl_mode)
+            .database("postgres")
     }
 
     pub fn with_db(&self) -> PgConnectOptions {
