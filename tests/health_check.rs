@@ -1,7 +1,6 @@
-
+use secrecy::ExposeSecret;
 use std::net::TcpListener;
 use std::sync::Once;
-use secrecy::ExposeSecret;
 
 //！测试/health_check.rs
 // `tokio::test` 相当于 `tokio::main` 的测试。
@@ -61,8 +60,7 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 }
 pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
     // 1. 把临时的连接字符串提取成独立变量
-    let connection_string_without_db = config.connection_string_without_db();
-    let mut connection = PgConnection::connect(&connection_string_without_db.expose_secret())
+    let mut connection = PgConnection::connect_with(&config.without_db())
         .await
         .expect("Failed to connect to Postgres");
 
@@ -75,8 +73,7 @@ pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
         .expect("Failed to create database.");
 
     // 3. 把第二个临时的连接字符串也提取出来
-    let connection_string = config.connection_string();
-    let connection_pool = PgPool::connect(&connection_string.expose_secret())
+    let connection_pool = PgPool::connect_with(config.with_db())
         .await
         .expect("Failed to connect to Postgres");
 
@@ -119,6 +116,36 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
     }
 }
 
+#[tokio::test]
+async fn subscribe_returns_a_200_when_fields_are_present_but_empty() {
+    // Arrange
+    let TestApp { port, db_pool } = spawn_app().await;
+    let client = reqwest::Client::new();
+    let test_cases = vec![
+        ("name=&email=ursula_le_guin%40gmail.com", "empty name"),
+        ("name=Ursula&email=", "empty email"),
+        ("name=Ursula&email=definitely-not-an-email", "invalid email"),
+    ];
+    for (body, description) in test_cases {
+        // Act
+        let response = client
+            .post(&format!("http://127.0.0.1:{}/subscriptions", &port))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request.");
+
+        // Assert
+        assert_eq!(
+            400,
+            response.status().as_u16(),
+            "The API did not return a 200 OK when the payload was {}.",
+            description
+        );
+    }
+}
+
 pub struct TestApp {
     pub port: u16,
     pub db_pool: PgPool,
@@ -129,9 +156,9 @@ async fn spawn_app() -> TestApp {
     TRACING.call_once(|| {
         let default_filter_level = "info";
         let subscriber_name = "test";
-//      我们不能根据“TEST_LOG”的值将“get_subscriber”的输出赋值给变量
-//      由于汇是“get_subscriber”返回类型的一部分，因此它们不是
-//      同一种类型。我们可以绕过这个问题，但这是最直接的前进方式
+        //      我们不能根据“TEST_LOG”的值将“get_subscriber”的输出赋值给变量
+        //      由于汇是“get_subscriber”返回类型的一部分，因此它们不是
+        //      同一种类型。我们可以绕过这个问题，但这是最直接的前进方式
         if std::env::var("TEST_LOG").is_ok() {
             let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::stdout);
             init_subscriber(subscriber);

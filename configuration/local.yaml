@@ -4,7 +4,7 @@ database:
   username: "postgres"
   password: ""
   database_name: "newsletter"
-
+  require_ssl: false
 
 application:
   port: 8000

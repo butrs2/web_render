@@ -4,7 +4,7 @@ database:
   username: "neondb_owner"
   password: "npg_VR4XJnw7WbYT"
   database_name: "neondb"
-
+  require_ssl: true
 
 application:
   port: 80
